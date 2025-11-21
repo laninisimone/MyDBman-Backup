@@ -1,37 +1,37 @@
 # MyDBman Backup
 
-Questo repository contiene uno script shell per eseguire backup di tutti i database MySQL/MariaDB sia locali che presenti in container Docker.
+A shell script to back up MySQL/MariaDB databases, both local and running in Docker containers.
 
-File creati:
-- `mydbman.sh` — script principale (bash)
-- `mydbman.conf.sample` — esempio di file di configurazione da copiare come `mydbman.conf`
+Files:
+- `mydbman.sh` — main script (bash)
+- `mydbman.conf.sample` — sample configuration file to copy as `mydbman.conf`
 
-## Come usare
+## How to use
 
-**IMPORTANTE**: Lo script richiede bash, non sh. Eseguilo sempre con:
+**IMPORTANT**: The script requires bash, not sh. Always run it with:
 
 ```bash
 bash mydbman.sh
 ```
 
-1. Copia il sample nella stessa cartella dello script e modificalo:
+1. Copy the sample file in the same folder as the script and edit it:
 
 ```bash
 cp mydbman.conf.sample mydbman.conf
-# Modifica BASE_DIR e le sezioni database come necessario
+# Edit BASE_DIR and database sections as needed
 ```
 
-2. Esegui lo script (default legge `mydbman.conf` nello stesso percorso dello script):
+2. Run the script (by default it reads `mydbman.conf` in the same path as the script):
 
 ```bash
 bash mydbman.sh
-# oppure specificare un file di config alternativo
-bash mydbman.sh -c /percorso/a/mio_config.conf
+# or specify an alternative config file
+bash mydbman.sh -c /path/to/my_config.conf
 ```
 
-## Formato del config
+## Config format
 
-Il file è in formato INI con sezioni per ogni database. Definisce `BASE_DIR` e sezioni `[nome_db]` con i parametri di connessione:
+The file is INI-style with one section per database. It defines `BASE_DIR` and `[db_name]` sections with connection parameters:
 
 ```ini
 BASE_DIR=/home/user/db_backups
@@ -64,66 +64,66 @@ compress=true
 engine=mariadb
 ```
 
-### Parametri per sezione:
-- **type**: `docker` o `native`
-- **host**: nome del container (per docker) o hostname/IP (per native)
-- **user**: username del database (default: `root` se omesso)
-- **password**: password del database (default: vuota se omessa)
-- **separate**: `true` per dump per singolo database, `false` per dump completo (`--all-databases`)
-- **compress**: `true` per `.sql.gz`, `false` per `.sql`
-- **engine**: `mysql` o `mariadb` (default: `mysql`)
+### Per-section parameters:
+- **type**: `docker` or `native`
+- **host**: container name (for docker) or hostname/IP (for native)
+- **user**: database username (default: `root` if omitted)
+- **password**: database password (default: empty if omitted)
+- **separate**: `true` for per-database dumps, `false` for full dump (`--all-databases`)
+- **compress**: `true` for `.sql.gz`, `false` for `.sql`
+- **engine**: `mysql` or `mariadb` (default: `mysql`)
 
-## Comportamento dello script
+## Script behavior
 
-- Per ogni sezione `[nome]` del config:
-	- se `separate=false`: esegue `mysqldump --all-databases --single-transaction=TRUE` e salva in
-		`BASE_DIR/nome/AAAA_MM_GG_HHMMSS_complete_dump.sql[.gz]`
-	- se `separate=true`: prima fa `SHOW DATABASES` e poi esegue un dump per ogni database (esclusi sistemi), salvando in
-		`BASE_DIR/nome/<db_name>/AAAA_MM_GG_HHMMSS_<db_name>_dump.sql[.gz]`
-- Per `type=docker`: usa `docker exec -i <host> <dump_bin> ...` / `<db_client> ...`
-- Per `type=native`: usa direttamente `<dump_bin>` / `<db_client>` sul sistema host, dove:
-	- se `engine=mysql`: `<dump_bin>=mysqldump`, `<db_client>=mysql`
-	- se `engine=mariadb`: `<dump_bin>=mariadb-dump`, `<db_client>=mariadb`
-- Se `compress=true` (default): output compresso `.sql.gz`, altrimenti `.sql`
+- For each `[name]` section in the config:
+	- if `separate=false`: runs `mysqldump --all-databases --single-transaction=TRUE` and saves to
+		`BASE_DIR/name/YYYY_MM_DD_HHMMSS_complete_dump.sql[.gz]`
+	- if `separate=true`: first runs `SHOW DATABASES`, then dumps each database (excluding system ones), saving to
+		`BASE_DIR/name/<db_name>/YYYY_MM_DD_HHMMSS_<db_name>_dump.sql[.gz]`
+- For `type=docker`: uses `docker exec -i <host> <dump_bin> ...` / `<db_client> ...`
+- For `type=native`: calls `<dump_bin>` / `<db_client>` directly on the host system, where:
+	- if `engine=mysql`: `<dump_bin>=mysqldump`, `<db_client>=mysql`
+	- if `engine=mariadb`: `<dump_bin>=mariadb-dump`, `<db_client>=mariadb`
+- If `compress=true` (default): compressed output `.sql.gz`, otherwise `.sql`
 
-## Opzioni
+## Options
 
 ```bash
 bash mydbman.sh [-c config_file] [-h]
 ```
 
-- `-c FILE`: usa file di config alternativo
-- `-h`: mostra help
+- `-c FILE`: use an alternative config file
+- `-h`: show help
 
-## Assunzioni e note
+## Assumptions and notes
 
-- Per dump nativi: i binari `mysqldump`/`mysql` o `mariadb-dump`/`mariadb` (a seconda di `engine`) devono essere nel PATH
-- Per dump in docker: il container deve avere disponibili gli stessi binari (`mysqldump`/`mysql` o `mariadb-dump`/`mariadb`)
-- Le credenziali sono passate direttamente ai comandi (attenzione alla sicurezza)
+- For native dumps: the binaries `mysqldump`/`mysql` or `mariadb-dump`/`mariadb` (depending on `engine`) must be available in `PATH`
+- For Docker dumps: the container must have the same binaries available (`mysqldump`/`mysql` or `mariadb-dump`/`mariadb`)
+- Credentials are passed directly to the commands (be careful with security)
 
-## Controllo rapido della sintassi (opzionale)
+## Quick syntax check (optional)
 
 ```bash
-# check syntax (richiede bash disponibile)
+# check syntax (requires bash)
 bash -n mydbman.sh
 ```
 
-## Esempio di run
+## Example run
 
 ```bash
-# esegui il backup con compressione (default)
+# run backup with compression (default)
 bash mydbman.sh
 
-# usa config alternativo
+# use an alternative config
 bash mydbman.sh -c /path/to/custom_config.conf
 
-# dopo l'esecuzione troverai i file in BASE_DIR
+# after execution you'll find the files in BASE_DIR
 ```
 
-## Problemi comuni
+## Common issues
 
-- **"Illegal option -o pipefail"**: stai usando `sh` invece di `bash`. Usa sempre `bash mydbman.sh`
-- "docker: command not found": installa Docker o esegui solo backup nativi
-- "mysqldump: command not found": installa il client MySQL/MariaDB
-- "Access denied": verifica user/password nelle sezioni del config
-- Container non trovato: verifica che il container sia in esecuzione e il nome sia corretto
+- **"Illegal option -o pipefail"**: you are using `sh` instead of `bash`. Always use `bash mydbman.sh`
+- "docker: command not found": install Docker or only use native backups
+- "mysqldump: command not found": install the MySQL/MariaDB client tools
+- "Access denied": check user/password in the config sections
+- Container not found: ensure the container is running and the name is correct
