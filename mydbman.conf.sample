@@ -14,6 +14,7 @@ BASE_DIR=/home/user/db_backups
 #   separate: true|false  (default: false)
 #   compress: true|false  (default: true)
 #   engine: mysql|mariadb (default: mysql)
+#   retention: integer >=0 (number of older backups to keep, default: disabled)
 
 [my_docker_db]
 type=docker
@@ -23,6 +24,7 @@ password=my_db_password
 separate=true
 compress=true
 engine=mysql
+retention=2
 
 [local_mysql]
 type=native
@@ -32,6 +34,7 @@ password=my_local_db_password
 separate=true
 compress=false
 engine=mysql
+retention=0
 
 [remote_mysql]
 type=native
@@ -41,3 +44,4 @@ password=remote_password
 separate=false
 compress=true
 engine=mariadb
+retention=5

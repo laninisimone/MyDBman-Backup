@@ -64,6 +64,7 @@ password=remote_password
 separate=false
 compress=true
 engine=mariadb
+retention=5
 ```
 
 ### Per-section parameters:
@@ -74,6 +75,7 @@ engine=mariadb
 - **separate**: `true` for per-database dumps, `false` for full dump (`--all-databases`)
 - **compress**: `true` for `.sql.gz`, `false` for `.sql`
 - **engine**: `mysql` or `mariadb` (default: `mysql`)
+ - **retention**: integer `>=0`; if set, keeps only the latest `retention+1` backups (per section or per database), deleting older ones
 
 ## Script behavior
 

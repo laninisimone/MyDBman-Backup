@@ -33,6 +33,7 @@ Config file format (INI-style). Example in mydbman.conf.sample:
   engine=mysql|mariadb   # if omitted: mysql
   separate=true|false
   compress=true|false   # if omitted: true
+  retention=N           # optional, keep N+1 latest backups
 
 Notes:
   - type: docker|native
@@ -140,6 +141,7 @@ run_dump_section() {
   local engine="${config[$section.engine]:-mysql}"
   local separate="${config[$section.separate]:-false}"
   local compress="${config[$section.compress]:-true}"
+  local retention_raw="${config[$section.retention]:-}"
 
   if [[ -z "$type" ]]; then
     echo "ERROR: missing 'type' for section [$section]" >&2
@@ -156,6 +158,16 @@ run_dump_section() {
   if [[ "$type" == "docker" && -z "$host" ]]; then
     echo "ERROR: host (container name) required for docker section [$section]" >&2
     return 1
+  fi
+
+  local retention=-1
+  if [[ -n "$retention_raw" ]]; then
+    if [[ "$retention_raw" =~ ^[0-9]+$ ]]; then
+      retention="$retention_raw"
+    else
+      echo "ERROR: invalid retention '$retention_raw' for section [$section] (must be integer >=0)" >&2
+      return 1
+    fi
   fi
 
   local ts dir_section
@@ -211,6 +223,20 @@ run_dump_section() {
         return 1
       fi
     fi
+
+    # Apply retention on full-dump files in section directory
+    if [[ "$retention" -ge 0 ]]; then
+      local pattern_full="*_complete_dump.sql*"
+      mapfile -t files < <(ls -1t "$dir_section"/$pattern_full 2>/dev/null || true)
+      local keep=$((retention+1))
+      if [[ ${#files[@]} -gt $keep ]]; then
+        echo "    Applying retention=$retention on section [$section] (full dumps)"
+        for ((i=keep; i<${#files[@]}; i++)); do
+          echo "      Deleting old backup: ${files[$i]}"
+          rm -f "${files[$i]}" || true
+        done
+      fi
+    fi
   else
     echo "    -> fetching database list for [$section] ..."
     local list_cmd="$db_client$auth_args -N -e 'SHOW DATABASES;'"
@@ -235,6 +261,7 @@ run_dump_section() {
         else
           echo "       FAIL db=$db" >&2
           rm -f "$outfile" || true
+          continue
         fi
       else
         if run_in_context "$type" "$host" "$cmd" > "$outfile"; then
@@ -242,6 +269,21 @@ run_dump_section() {
         else
           echo "       FAIL db=$db" >&2
           rm -f "$outfile" || true
+          continue
+        fi
+      fi
+
+      # Apply retention on per-db files in this db directory
+      if [[ "$retention" -ge 0 ]]; then
+        local pattern_db="*_""$db""_dump.sql*"
+        mapfile -t files_db < <(ls -1t "$db_dir"/$pattern_db 2>/dev/null || true)
+        local keep_db=$((retention+1))
+        if [[ ${#files_db[@]} -gt $keep_db ]]; then
+          echo "       Applying retention=$retention on section [$section] db=$db"
+          for ((j=keep_db; j<${#files_db[@]}; j++)); do
+            echo "         Deleting old backup: ${files_db[$j]}"
+            rm -f "${files_db[$j]}" || true
+          done
         fi
       fi
     done
