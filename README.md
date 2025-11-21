@@ -1,6 +1,6 @@
 # MyDBman Backup
 
-A shell script to back up MySQL/MariaDB databases, both local and running in Docker containers.
+A simple shell script to back up MySQL/MariaDB databases, both local and running in Docker containers.
 
 Files:
 - `mydbman.sh` — main script (bash)
@@ -8,26 +8,28 @@ Files:
 
 ## How to use
 
-**IMPORTANT**: The script requires bash, not sh. Always run it with:
+1. Clone the repository:
 
 ```bash
-bash mydbman.sh
+git clone https://github.com/laninisimone/MyDBman-Backup.git
+cd MyDBman-Backup
 ```
 
-1. Copy the sample file in the same folder as the script and edit it:
+2. Copy the sample file in the same folder as the script and edit it:
 
 ```bash
 cp mydbman.conf.sample mydbman.conf
 # Edit BASE_DIR and database sections as needed
 ```
 
-2. Run the script (by default it reads `mydbman.conf` in the same path as the script):
+3. Run the script (by default it reads `mydbman.conf` in the same path as the script):
 
 ```bash
 bash mydbman.sh
 # or specify an alternative config file
 bash mydbman.sh -c /path/to/my_config.conf
 ```
+**IMPORTANT**: The script requires bash, not sh. Always run it with:
 
 ## Config format
 
@@ -127,3 +129,30 @@ bash mydbman.sh -c /path/to/custom_config.conf
 - "mysqldump: command not found": install the MySQL/MariaDB client tools
 - "Access denied": check user/password in the config sections
 - Container not found: ensure the container is running and the name is correct
+
+## Cron automation example
+
+To schedule automatic backups, add a cron job. Edit your crontab:
+
+```bash
+crontab -e
+```
+
+Example entries:
+
+```cron
+# Daily backup at 4:00 AM
+0 4 * * * /bin/bash /path/to/MyDBman-Backup/mydbman.sh >> /var/log/mydbman-backup.log 2>&1
+
+# Every 6 hours
+0 */6 * * * /bin/bash /path/to/MyDBman-Backup/mydbman.sh
+
+# Weekly on Sunday at 10:00 PM with custom config
+0 22 * * 0 /bin/bash /path/to/MyDBman-Backup/mydbman.sh -c /path/to/custom.conf
+```
+
+**Important notes for cron:**
+- Use absolute paths for both the script and config file
+- Ensure the cron user has permissions to access Docker (if using Docker backups)
+- Consider redirecting output to a log file for troubleshooting
+- Test your cron command manually before scheduling it
