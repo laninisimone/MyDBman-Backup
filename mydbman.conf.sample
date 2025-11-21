@@ -1,0 +1,43 @@
+# Sample config for MyDBman Backup (mydbman.sh)
+# Save a copy as mydbman.conf (same folder as the script) or pass -c <file>
+
+# Base folder where backups are written. Can be absolute or relative.
+BASE_DIR=/home/user/db_backups
+
+# Database sections: each [section] defines one database to backup
+# Required fields:
+#   type: docker or native
+#   host: container name (for docker) or hostname/IP (for native)
+#   user: database username (default: root if omitted)
+#   password: database password (default: empty if omitted)
+# Optional fields per section:
+#   separate: true|false  (default: false)
+#   compress: true|false  (default: true)
+#   engine: mysql|mariadb (default: mysql)
+
+[my_docker_db]
+type=docker
+host=my_db_container
+user=my_db_user
+password=my_db_password
+separate=true
+compress=true
+engine=mysql
+
+[local_mysql]
+type=native
+host=localhost
+user=my_local_db_user
+password=my_local_db_password
+separate=true
+compress=false
+engine=mysql
+
+[remote_mysql]
+type=native
+host=192.168.1.100
+user=remote_user
+password=remote_password
+separate=false
+compress=true
+engine=mariadb
